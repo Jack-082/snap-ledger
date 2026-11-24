@@ -278,9 +278,10 @@ class ImportActivity : ComponentActivity() {
                 uris.drop(1).forEach { addItem(ClipData.Item(it)) }
             }
             context.startActivity(
-                Intent(context, ImportActivity::class.java)
-                    .setClipData(clip)
-                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                Intent(context, ImportActivity::class.java).apply {
+                    clipData = clip
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
             )
         }
     }
