@@ -116,7 +116,7 @@ app/src/main/java/io/github/snapledger/
 ## 限制
 
 - 只解析人民币金额；外币账单需要手动修改。
-- 只打包 ARM 架构（手机），不能装在 x86 模拟器上。
+- 只打包 64 位 ARM（arm64-v8a）：不能装在 32 位手机和 x86 模拟器上。需要的话在 `app/build.gradle.kts` 的 `abiFilters` 里加上对应架构，安装包会相应变大。
 - 截图识别依赖截图内容完整：裁掉金额或时间的截图需要手动补全；没有识别到时间时使用导入时刻。
 - 数据只在本机（`allowBackup=false`），卸载即删除。请定期导出 CSV。
 

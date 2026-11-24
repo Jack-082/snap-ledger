@@ -29,9 +29,10 @@ android {
         targetSdk = 35
         versionCode = gitCommitCount
         versionName = gitVersionName
-        // 只打包 ARM 架构的原生库（手机都是 ARM；x86 只有模拟器用），安装包能小十几 MB
+        // 只打包 64 位 ARM 的原生库：两个识别引擎的原生库很大，每多一种架构安装包就多十几 MB。
+        // 近几年的手机都是 arm64；要支持 32 位手机，在这里加上 "armeabi-v7a"。
         ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+            abiFilters += listOf("arm64-v8a")
         }
     }
 
@@ -69,6 +70,12 @@ android {
         }
     }
 
+    // 原生库和 dex 在 APK 里压缩存放（默认不压缩），下载体积小一半以上，代价是安装后多占一些存储
+    packaging {
+        jniLibs { useLegacyPackaging = true }
+        dex { useLegacyPackaging = true }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -102,12 +109,13 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     // 端侧 OCR（中文 + 拉丁字符），模型打包进 APK，不依赖 Google Play 服务和网络
     implementation("com.google.mlkit:text-recognition-chinese:16.0.1")
-    // 第二个识别引擎：PP-OCRv5 mobile（模型在 assets/ppocr），用 ONNX Runtime 运行
-    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.32.0")
+    // 第二个识别引擎：PP-OCRv5 mobile（模型在 assets/ppocr），用 ONNX Runtime 运行。
+    // 特意不用最新版：1.26 之后原生库体积翻倍，而这个模型只用到很老的算子（opset 7）
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.22.0")
 
     testImplementation("junit:junit:4.13.2")
     // 单元测试里 android.jar 的 org.json 是空实现，换成真实实现来读取识别数据样本
     testImplementation("org.json:json:20240303")
     // 桌面版 ONNX Runtime（同一套 Java API），让单元测试在 CI 上用真实模型识别样本图片
-    testImplementation("com.microsoft.onnxruntime:onnxruntime:1.32.0")
+    testImplementation("com.microsoft.onnxruntime:onnxruntime:1.22.0")
 }
