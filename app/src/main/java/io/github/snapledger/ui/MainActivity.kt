@@ -163,15 +163,15 @@ class MainActivity : ComponentActivity() {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Column(Modifier.padding(start = 4.dp, top = 24.dp, bottom = 4.dp)) {
-                Text("截图记账", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Palette.Ink, letterSpacing = (-0.3).sp)
+                Text("拾账", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Palette.Ink, letterSpacing = (-0.3).sp)
                 Spacer(Modifier.height(4.dp))
-                Text("付款 / 到账截图一键入账 · 固定收支按时自动记", fontSize = 13.sp, color = Palette.Muted)
+                Text("截一张图，拾一笔账 · 固定收支按时自动记", fontSize = 13.sp, color = Palette.Muted)
             }
             Segmented(options = listOf(0 to "账单", 1 to "固定收支"), selected = tab) { tab = it }
             if (tab == 0) LedgerTab() else RulesTab()
             Column(Modifier.padding(start = 4.dp, top = 4.dp, bottom = 24.dp)) {
                 Caption("账本只保存在本机；截图在本机识别，不上传。卸载应用会删除数据，请定期导出 CSV。")
-                Caption("SnapLedger v$versionLabel", Palette.Faint)
+                Caption("拾账 SnapLedger v$versionLabel", Palette.Faint)
             }
         }
     }
@@ -223,7 +223,7 @@ class MainActivity : ComponentActivity() {
             }
             SecondaryButton("记一笔", Modifier.weight(1f)) { editingTxn = null to TxnDraft() }
         }
-        Caption("付款或收款后截图，然后任选一种：在通知栏快捷开关里点“记最新截图”（需先在快捷开关编辑页添加）；在相册里“分享 → 截图记账”；或回到这里点“最新截图”。微信 / 支付宝的账单列表截图可以一次导入多笔。")
+        Caption("付款或收款后截图，然后任选一种：在通知栏快捷开关里点“拾一笔”（需先在快捷开关编辑页添加）；在相册里“分享 → 拾账”；或回到这里点“最新截图”。微信 / 支付宝的账单列表截图可以一次导入多笔。")
 
         Section("明细 · ${txns.size} 笔") {
             if (txns.isEmpty()) {

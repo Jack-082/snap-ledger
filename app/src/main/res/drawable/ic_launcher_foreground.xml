@@ -1,19 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 截图取景框（绿）框住一张小票（蓝），小票上是 ¥ -->
+<!-- 拾账：截图取景框（白）框住一枚硬币（金）——“截一张图，把这笔账捡回来” -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp"
     android:viewportWidth="108" android:viewportHeight="108">
     <!-- 取景框四角 -->
-    <path android:pathData="M29,38 V29 H38 M70,29 H79 V38 M79,70 V79 H70 M38,79 H29 V70"
-        android:strokeColor="#00A087" android:strokeWidth="3.2"
+    <path android:pathData="M34,48 V39.5 a5.5,5.5 0 0 1 5.5,-5.5 H48 M60,34 H68.5 a5.5,5.5 0 0 1 5.5,5.5 V48 M74,60 V68.5 a5.5,5.5 0 0 1 -5.5,5.5 H60 M48,74 H39.5 a5.5,5.5 0 0 1 -5.5,-5.5 V60"
+        android:strokeColor="#FFFFFF" android:strokeWidth="4.8"
         android:strokeLineCap="round" android:strokeLineJoin="round" />
-    <!-- 小票：底部锯齿 -->
-    <path android:pathData="M40,34 H68 V72 L64.5,69 L61,72 L57.5,69 L54,72 L50.5,69 L47,72 L43.5,69 L40,72 Z"
-        android:fillColor="#FFFFFF"
-        android:strokeColor="#3C5488" android:strokeWidth="3"
-        android:strokeLineJoin="round" />
+    <!-- 硬币 -->
+    <path android:fillColor="#F5B83D"
+        android:pathData="M41.5,54 a12.5,12.5 0 1,0 25,0 a12.5,12.5 0 1,0 -25,0 z" />
     <!-- ¥ -->
-    <path android:pathData="M48,42 L54,49.5 L60,42 M54,49.5 V63 M48.5,52.5 H59.5 M48.5,57.5 H59.5"
-        android:strokeColor="#1A1A1A" android:strokeWidth="2.6"
+    <path android:pathData="M48.9,47.5 L54,53.6 L59.1,47.5 M54,53.6 V61.5 M49.8,54.6 H58.2 M49.8,58.3 H58.2"
+        android:strokeColor="#1B2A4A" android:strokeWidth="2.8"
         android:strokeLineCap="round" android:strokeLineJoin="round" />
 </vector>

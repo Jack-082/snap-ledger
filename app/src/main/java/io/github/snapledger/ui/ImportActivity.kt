@@ -83,7 +83,7 @@ import org.json.JSONObject
 
 /**
  * 截图导入：
- * - 系统分享（相册 / 微信 / 支付宝里“分享 → 截图记账”），可多张；
+ * - 系统分享（相册 / 微信 / 支付宝里“分享 → 拾账”），可多张；
  * - 主界面“相册多选”；
  * - 快捷开关或主界面“最新截图”：直接取相册里最新的一张截图。
  *
@@ -372,7 +372,7 @@ class ImportActivity : ComponentActivity() {
         ) {
             Row(Modifier.padding(start = 4.dp, top = 20.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("截图记账", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Palette.Ink)
+                    Text("识别截图", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Palette.Ink)
                     Caption(if (items.isEmpty()) "准备中…" else "共 ${items.size} 张 · 本机识别，请核对后保存")
                 }
                 if (saveAll.size >= 2) PrimaryButton("全部保存") { saveAll.forEach(::save) }

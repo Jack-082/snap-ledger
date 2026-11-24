@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">截图记账</string>
-    <string name="share_label">截图记账</string>
-    <string name="tile_label">记最新截图</string>
+    <string name="app_name">拾账</string>
+    <string name="share_label">拾账</string>
+    <string name="tile_label">拾一笔</string>
 </resources>
