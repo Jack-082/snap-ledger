@@ -11,7 +11,7 @@ import org.junit.Test
 /**
  * 识别数据样本回归测试。
  *
- * 每个 `src/test/resources/fixtures/*.json` 是一张截图的 OCR 结果（文字 + 位置），格式与 App 里
+ * `src/test/resources/fixtures` 目录下的每个 .json 文件是一张截图的 OCR 结果（文字 + 位置），格式与 App 里
  * “识别文字 → 复制识别数据”导出的一致，再加上 `expect` 期望结果。遇到识别不准的截图，
  * 把导出的数据存成新文件、写上期望值，就成了一个测试用例。
  */
