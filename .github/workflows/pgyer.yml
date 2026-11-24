@@ -1,0 +1,128 @@
+name: Publish to Pgyer
+
+# 把 GitHub Release 上已发布的 APK 原样上传到蒲公英（两处安装包完全相同）。
+# - 推送 v* 标签时由 build.yml 在发布 Release 之后自动调用；
+# - 也可以在 Actions 页面手动运行，补传某个已有版本（留空则为最新 Release）。
+# 需要 Secret PGYER_API_KEY（https://www.pgyer.com/account/api）；可选 PGYER_PASSWORD 给下载页设置安装密码。
+# 接口文档：https://www.pgyer.com/doc/view/api_upload
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "要上传的版本标签，例如 v0.1.0；留空为最新 Release"
+        required: false
+        default: ""
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    env:
+      PGYER_API_KEY: ${{ secrets.PGYER_API_KEY }}
+      PGYER_PASSWORD: ${{ secrets.PGYER_PASSWORD }}
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ inputs.tag }}
+    steps:
+      - name: Check API key
+        id: key
+        run: |
+          if [ -z "$PGYER_API_KEY" ]; then
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+              echo "::error::没有读取到 PGYER_API_KEY，请在 Settings → Secrets and variables → Actions 的 Repository secrets 里添加"
+              exit 1
+            fi
+            echo "::notice::没有配置 PGYER_API_KEY，跳过上传到蒲公英"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download APK from GitHub Release
+        if: steps.key.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          if [ -z "$TAG" ]; then
+            TAG="$(gh release view -R "$GITHUB_REPOSITORY" --json tagName -q .tagName)"
+          fi
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          mkdir -p dist
+          gh release download "$TAG" -R "$GITHUB_REPOSITORY" -p '*.apk' -D dist
+          ls -la dist
+          sha256sum dist/*.apk
+
+      - name: Upload to Pgyer
+        if: steps.key.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          apk="$(ls dist/*.apk | head -1)"
+          repo_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
+          notes="拾账 ${TAG}，更新说明见 ${repo_url}/releases/tag/${TAG}"
+          description="拾账：截一张图，拾一笔账。付款 / 到账截图在本机识别入账，工资、会员订阅等固定收支按时自动记；识别全部在本机完成，截图不上传。开源项目（Apache-2.0）：${repo_url}
+          需要 Android 9 及以上、64 位 ARM 手机。本项目与腾讯（微信支付）、蚂蚁集团（支付宝）及各银行无关联，相关名称仅用于说明兼容的截图类型。"
+          install_args=()
+          if [ -n "${PGYER_PASSWORD:-}" ]; then
+            install_args=(--data-urlencode "buildInstallType=2" --data-urlencode "buildPassword=${PGYER_PASSWORD}")
+          fi
+
+          # 1. 获取上传地址和签名
+          token="$(curl -sS -X POST https://www.pgyer.com/apiv2/app/getCOSToken \
+            --data-urlencode "_api_key=${PGYER_API_KEY}" \
+            --data-urlencode "buildType=android" \
+            --data-urlencode "buildDescription=${description}" \
+            --data-urlencode "buildUpdateDescription=${notes}" \
+            "${install_args[@]}")"
+          if [ "$(jq -r .code <<<"$token")" != "0" ]; then
+            echo "::error::蒲公英获取上传地址失败：$(jq -r .message <<<"$token")"
+            exit 1
+          fi
+          endpoint="$(jq -r .data.endpoint <<<"$token")"
+          build_key="$(jq -r .data.key <<<"$token")"
+
+          # 2. 上传 APK（成功返回 HTTP 204）
+          status="$(curl -sS -o "$RUNNER_TEMP/pgyer-upload.txt" -w '%{http_code}' -X POST "$endpoint" \
+            --form-string "key=$(jq -r .data.params.key <<<"$token")" \
+            --form-string "signature=$(jq -r .data.params.signature <<<"$token")" \
+            --form-string "x-cos-security-token=$(jq -r '.data.params["x-cos-security-token"]' <<<"$token")" \
+            --form-string "x-cos-meta-file-name=$(basename "$apk")" \
+            -F "file=@${apk}")"
+          if [ "$status" != "204" ]; then
+            echo "::error::上传 APK 到蒲公英失败：HTTP $status"
+            cat "$RUNNER_TEMP/pgyer-upload.txt"
+            exit 1
+          fi
+
+          # 3. 轮询发布结果（1247 = 正在发布）
+          for _ in $(seq 1 60); do
+            info="$(curl -sS -G https://www.pgyer.com/apiv2/app/buildInfo \
+              --data-urlencode "_api_key=${PGYER_API_KEY}" \
+              --data-urlencode "buildKey=${build_key}")"
+            code="$(jq -r .code <<<"$info")"
+            if [ "$code" = "0" ]; then
+              url="https://www.pgyer.com/$(jq -r .data.buildShortcutUrl <<<"$info")"
+              version="$(jq -r .data.buildVersion <<<"$info") ($(jq -r .data.buildVersionNo <<<"$info"))"
+              qr="$(jq -r .data.buildQRCodeURL <<<"$info")"
+              echo "::notice::蒲公英发布成功：${url}  版本 ${version}"
+              {
+                echo "### 蒲公英下载"
+                echo ""
+                echo "- 下载页：${url}"
+                echo "- 版本：${version}"
+                echo ""
+                echo "![二维码](${qr})"
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            elif [ "$code" = "1247" ]; then
+              sleep 5
+            else
+              echo "::error::蒲公英发布失败：code=${code} $(jq -r .message <<<"$info")"
+              exit 1
+            fi
+          done
+          echo "::error::等待蒲公英发布结果超时"
+          exit 1

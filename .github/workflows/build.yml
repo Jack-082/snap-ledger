@@ -117,3 +117,12 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: app/build/outputs/apk/release/*.apk
+
+  # 发布 Release 之后，把同一个 APK 上传到蒲公英（没有配置 PGYER_API_KEY 时自动跳过）
+  pgyer:
+    needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    uses: ./.github/workflows/pgyer.yml
+    with:
+      tag: ${{ github.ref_name }}
+    secrets: inherit

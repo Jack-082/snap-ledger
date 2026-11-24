@@ -9,6 +9,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/Jack-082/snap-ledger/releases/latest"><img src="https://img.shields.io/github/v/release/Jack-082/snap-ledger?label=%E4%B8%8B%E8%BD%BD&color=3C5488" alt="最新版本"></a>
   <a href="https://github.com/Jack-082/snap-ledger/actions/workflows/build.yml"><img src="https://github.com/Jack-082/snap-ledger/actions/workflows/build.yml/badge.svg" alt="构建状态"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-00A087" alt="License"></a>
   <img src="https://img.shields.io/badge/Android-9%2B-1A1A1A" alt="Android 9+">
@@ -77,9 +78,15 @@
 
 ## 安装
 
-在 [Actions](https://github.com/Jack-082/snap-ledger/actions/workflows/build.yml) 最新一次成功运行的 Artifacts 里下载 `SnapLedger-apk`；推送 `v*` 标签时会同时发布到 Releases。
+### 下载 APK
 
-正式构建使用固定签名，证书 SHA-256 为 `9db169c6ec9517af004d9cb1967b2d6359a6558b673dc738fa1c21f38f85e14a`，新版本可以直接覆盖安装，账本数据保留。
+- **GitHub**：到 [Releases](https://github.com/Jack-082/snap-ledger/releases/latest) 下载 `SnapLedger-<版本>-release.apk`。
+
+需要 Android 9 及以上、64 位 ARM 手机。签名证书 SHA-256 为 `9db169c6ec9517af004d9cb1967b2d6359a6558b673dc738fa1c21f38f85e14a`，以后的版本使用同一签名，可以**直接覆盖安装**，账本数据保留。
+
+### 自行构建
+
+Fork 本仓库后 Actions 会自动构建，在运行详情页的 Artifacts 里下载 `SnapLedger-apk`；推送 `v*` 标签时会同时发布到 Releases。
 
 自己 Fork 构建且没有配置签名时 APK 使用 CI 临时生成的 debug 签名，每次构建签名不同，**升级前需要先卸载**（会清空账本，请先导出 CSV）。固定签名的配置方法与 [mi-health-bridge](https://github.com/Jack-082/mi-health-bridge#自行构建) 相同，密钥别名默认为 `snapledger`：
 
@@ -87,6 +94,8 @@
 |---|---|
 | `SIGNING_KEYSTORE_BASE64` | keystore（PKCS12）的 base64 |
 | `SIGNING_STORE_PASSWORD` | keystore 密码 |
+
+**自动上传到蒲公英**（可选）：再添加 `PGYER_API_KEY`（在 [蒲公英 API 信息页](https://www.pgyer.com/account/api) 获取），推送 `v*` 标签时会在发布 Release 之后，把同一个 APK 上传到蒲公英，下载页地址显示在运行摘要里。可选的 `PGYER_PASSWORD` 给下载页设置安装密码。已有的版本可以在 Actions 页面手动运行 **Publish to Pgyer** 补传。
 
 **本地构建**（JDK 17、Android SDK 35）：
 
