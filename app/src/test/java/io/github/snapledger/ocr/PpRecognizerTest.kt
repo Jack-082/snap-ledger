@@ -2,7 +2,6 @@ package io.github.snapledger.ocr
 
 import io.github.snapledger.parse.Fusion
 import java.io.File
-import javax.imageio.ImageIO
 import kotlin.math.abs
 import org.json.JSONObject
 import org.junit.AfterClass
@@ -39,9 +38,19 @@ class PpRecognizerTest {
 
     private fun resource(name: String) = File(javaClass.classLoader!!.getResource("ppocr/$name")!!.toURI())
 
+    /**
+     * 读 PNG。Android 单元测试按 android.jar 编译，里面没有 javax.imageio，
+     * 但测试实际跑在普通 JVM 上，所以用反射调用。
+     */
     private fun loadPage(name: String): Page {
-        val img = ImageIO.read(resource(name))
-        return Page(img.getRGB(0, 0, img.width, img.height, null, 0, img.width), img.width, img.height)
+        val img = Class.forName("javax.imageio.ImageIO").getMethod("read", File::class.java).invoke(null, resource(name))!!
+        val c = img.javaClass
+        val w = c.getMethod("getWidth").invoke(img) as Int
+        val h = c.getMethod("getHeight").invoke(img) as Int
+        val int = Int::class.javaPrimitiveType
+        val argb = c.getMethod("getRGB", int, int, int, int, IntArray::class.java, int, int)
+            .invoke(img, 0, 0, w, h, null, 0, w) as IntArray
+        return Page(argb, w, h)
     }
 
     /** 在给定范围内找文字的紧致外接框（模拟 ML Kit 给出的行框）。 */
