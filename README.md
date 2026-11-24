@@ -61,7 +61,9 @@
 
 在 [Actions](https://github.com/Jack-082/snap-ledger/actions/workflows/build.yml) 最新一次成功运行的 Artifacts 里下载 `SnapLedger-apk`；推送 `v*` 标签时会同时发布到 Releases。
 
-没有配置签名时 APK 使用 CI 临时生成的 debug 签名，每次构建签名不同，**升级前需要先卸载**（会清空账本，请先导出 CSV）。固定签名的配置方法与 [mi-health-bridge](https://github.com/Jack-082/mi-health-bridge#自行构建) 相同，密钥别名默认为 `snapledger`：
+正式构建使用固定签名，证书 SHA-256 为 `9db169c6ec9517af004d9cb1967b2d6359a6558b673dc738fa1c21f38f85e14a`，新版本可以直接覆盖安装，账本数据保留。
+
+自己 Fork 构建且没有配置签名时 APK 使用 CI 临时生成的 debug 签名，每次构建签名不同，**升级前需要先卸载**（会清空账本，请先导出 CSV）。固定签名的配置方法与 [mi-health-bridge](https://github.com/Jack-082/mi-health-bridge#自行构建) 相同，密钥别名默认为 `snapledger`：
 
 | Secret | 值 |
 |---|---|
