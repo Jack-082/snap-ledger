@@ -1,0 +1,111 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      KEYSTORE_B64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # 需要完整历史和标签来生成版本号
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: "8.11.1"
+          # v6 默认的 'enhanced' 缓存是闭源商业组件，需接受 Gradle 的使用条款；这里使用开源的基础缓存
+          cache-provider: basic
+
+      - name: Unit tests
+        run: gradle :app:testDebugUnitTest --no-daemon
+
+      - name: Upload test report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-report
+          path: app/build/reports/tests/
+
+      # 可选：配置 SIGNING_KEYSTORE_BASE64 等 Secrets 后使用固定签名，APK 可直接覆盖升级
+      - name: Signing status
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "::notice::已读取到 SIGNING_KEYSTORE_BASE64，将使用固定签名"
+          else
+            echo "::warning::没有读取到 SIGNING_KEYSTORE_BASE64（请确认它在 Settings → Secrets and variables → Actions 的 Repository secrets 里），本次使用 debug 签名"
+          fi
+
+      - name: Decode keystore
+        if: env.KEYSTORE_B64 != ''
+        env:
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ vars.SIGNING_KEY_ALIAS || 'snapledger' }} # 别名不是机密，写成 Secret 会导致日志里同名文字被遮挡
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          missing=""
+          # SIGNING_KEY_PASSWORD 可选：不配置时使用 SIGNING_STORE_PASSWORD
+          for v in SIGNING_STORE_PASSWORD; do
+            [ -n "${!v}" ] || missing="$missing $v"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::缺少 Secret：$missing"
+            exit 1
+          fi
+          # 去掉粘贴时可能带进来的空格和换行
+          printf '%s' "$KEYSTORE_B64" | tr -d ' \r\n' | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "keystore 大小：$(wc -c < "$RUNNER_TEMP/release.jks") 字节，别名：$SIGNING_KEY_ALIAS"
+          if [ -n "$SIGNING_KEY_PASSWORD" ] && [ "$SIGNING_KEY_PASSWORD" != "$SIGNING_STORE_PASSWORD" ]; then
+            echo "::warning::SIGNING_KEY_PASSWORD 与 SIGNING_STORE_PASSWORD 不同；用 openssl 生成的 keystore 两者应相同，建议删除 SIGNING_KEY_PASSWORD"
+          fi
+          echo "SIGNING_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
+      - name: Assemble release APK
+        env:
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ vars.SIGNING_KEY_ALIAS || 'snapledger' }} # 别名不是机密，写成 Secret 会导致日志里同名文字被遮挡
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: gradle :app:assembleRelease --no-daemon
+
+      - name: Version
+        run: |
+          echo "::notice::versionName=$(git describe --tags --match 'v[0-9]*' --dirty 2>/dev/null | sed 's/^v//' || echo '无标签')  versionCode=$(git rev-list --count HEAD)"
+
+      - name: Verify APK signature
+        run: |
+          apksigner="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner"
+          for apk in app/build/outputs/apk/release/*.apk; do
+            "$apksigner" verify --print-certs "$apk" | tee "$RUNNER_TEMP/certs.txt"
+            digest="$(grep -m1 'SHA-256 digest' "$RUNNER_TEMP/certs.txt" | awk '{print $NF}')"
+            if grep -q 'CN=Android Debug' "$RUNNER_TEMP/certs.txt"; then
+              echo "::warning::APK 使用的是 debug 签名（每次构建都不同），安装前需要先卸载旧版本"
+            else
+              echo "::notice::APK 已使用固定签名，证书 SHA-256：$digest"
+            fi
+          done
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: SnapLedger-apk
+          path: app/build/outputs/apk/release/*.apk
+
+      # 只在推送标签时创建 Release；在 Actions 页面对某个标签手动运行时不重复发布
+      - name: Publish GitHub Release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v3
+        with:
+          files: app/build/outputs/apk/release/*.apk

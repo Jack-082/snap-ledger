@@ -1,0 +1,7 @@
+SnapLedger
+Copyright 2026 SnapLedger contributors
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This app bundles Google ML Kit Text Recognition (Chinese) for on-device OCR,
+which is subject to the ML Kit Terms of Service.
