@@ -5,3 +5,12 @@ Licensed under the Apache License, Version 2.0 (see LICENSE).
 
 This app bundles Google ML Kit Text Recognition (Chinese) for on-device OCR,
 which is subject to the ML Kit Terms of Service.
+
+This app bundles the PP-OCRv5_mobile_rec text recognition model from PaddleOCR
+(Copyright PaddlePaddle Authors, Apache License 2.0), taken from
+https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_rec_onnx at revision
+ed152b8b495f84de93cda5709d768548a9127622 (app/src/main/assets/ppocr/rec.onnx,
+SHA-256 da72dc72ca4dc220df0dfde68c1dedc31c58d3e76a25871122e5056227d50092; the
+character dictionary dict.txt is extracted from the same repository's
+inference.yml), and runs it with ONNX Runtime (Copyright Microsoft Corporation,
+MIT License).

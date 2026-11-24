@@ -98,6 +98,14 @@ jobs:
             fi
           done
 
+      - name: APK size breakdown
+        run: |
+          for apk in app/build/outputs/apk/release/*.apk; do
+            echo "$(basename "$apk")  $(du -h "$apk" | cut -f1)"
+            echo "APK 内最大的 12 项（压缩后大小，字节）："
+            unzip -lv "$apk" | awk 'NR>3 && $8!="" {print $3, $8}' | sort -rn | head -12
+          done
+
       - uses: actions/upload-artifact@v7
         with:
           name: SnapLedger-apk

@@ -40,7 +40,13 @@
 | 银行短信、银行 App 交易详情 | “收入 / 支出人民币 xx 元”，自动排除“余额” |
 | **账单列表**（微信“账单”、支付宝“账单”、云闪付“我的账单”） | 一张图识别多笔，逐笔勾选后保存 |
 
-识别全部在本机完成（Google ML Kit 中文模型打包在 APK 里），截图不上传，也不需要 Google Play 服务。解析时综合三类信息：
+识别全部在本机完成，截图不上传，也不需要 Google Play 服务。两个识别引擎配合：
+
+1. **ML Kit**（中文模型）找出每一行文字的位置，给出初步结果；
+2. **PP-OCRv5 mobile**（PaddleOCR 的中文识别模型，用 ONNX Runtime 运行）把每一行再识别一遍——它对汉字，尤其是商户名里的字，比 ML Kit 认得准；
+3. 两个结果逐字对齐后合并：**汉字以 PP-OCRv5 为准**（它有把握时）；空格、英文和数字保持 ML Kit 的结果；**两边读出的数字不一致时不擅自修改，而是提示“请核对”并给出另一个结果**（小数点丢失这种一眼能判断的除外）。
+
+第二个引擎加载失败时会自动退回只用 ML Kit。解析时综合三类信息：
 
 - **版面**：保留每个文字块的位置和大小。账单页的金额是全页字号最大的数字，这一条单独就能排除大部分干扰；左右两栏的“标签 / 值”按行对齐后再读取。
 - **文字**：正负号、¥、“实付 / 付款金额 / 收入”加分，“优惠 / 原价 / 订单金额 / 余额 / 手续费”减分；修正常见误识别（¥ 认成 Y、0 认成 O、“38. 00”多了空格）。
@@ -95,20 +101,22 @@ gradle wrapper --gradle-version 8.11.1   # 只需一次
 
 ```
 app/src/main/java/io/github/snapledger/
-├── parse/      Layout（版面：按行合并、字号）、ReceiptParser（单笔打分解析）、BillListParser（账单列表）、
+├── parse/      Layout（版面：按行合并、字号）、Fusion（合并两个引擎的结果）、ReceiptParser（单笔打分解析）、BillListParser（账单列表）、
 │               TimeParser、TextNorm（误识别修正）、Lexicon（关键词 / 标签）、Categorizer
-├── ocr/        OcrEngine：ML Kit 端侧识别 + 图片哈希
+├── ocr/        OcrEngine（两个引擎的调度）、PpRecognizer（PP-OCRv5，纯 JVM，可单测）、LineCrop
+├── assets/ppocr/  PP-OCRv5 mobile 识别模型（rec.onnx，16 MB）和字典
 ├── recurring/  RecurringRule、Recurrence（周期计算，纯函数）、RecurringWorker / Scheduler / Poster
 ├── data/       LedgerDb（SQLite）、Csv 导出
 ├── model/      Txn、Money（金额以“分”保存）
 └── ui/         MainActivity（账单 / 固定收支）、ImportActivity（分享入口与确认页）、QuickImportTileService（快捷开关）
 ```
 
-解析、周期计算、CSV 都是纯 Kotlin，单元测试在 `app/src/test`，CI 每次构建都会运行；`fixtures/` 下的识别数据样本由 `FixtureTest` 逐个校验。
+解析、周期计算、CSV 都是纯 Kotlin，单元测试在 `app/src/test`，CI 每次构建都会运行；`fixtures/` 下的识别数据样本由 `FixtureTest` 逐个校验；`PpRecognizerTest` 在 CI 上用打包进 App 的真实模型识别一张渲染的样本账单页，验证“裁剪 → 预处理 → 推理 → 解码”整条链路。
 
 ## 限制
 
 - 只解析人民币金额；外币账单需要手动修改。
+- 只打包 ARM 架构（手机），不能装在 x86 模拟器上。
 - 截图识别依赖截图内容完整：裁掉金额或时间的截图需要手动补全；没有识别到时间时使用导入时刻。
 - 数据只在本机（`allowBackup=false`），卸载即删除。请定期导出 CSV。
 
