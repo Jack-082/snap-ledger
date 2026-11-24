@@ -292,6 +292,7 @@ class ImportActivity : ComponentActivity() {
         val warning = listOfNotNull(
             duplicate,
             p.warning,
+            p.amountAlt?.let { "两次识别的金额不一致（另一个结果：$it），请核对" },
             if (cents == null) "没有识别出金额，请手动填写" else null,
         ).joinToString("；").ifEmpty { null }
         return Entry(
@@ -347,8 +348,15 @@ class ImportActivity : ComponentActivity() {
     private fun copyDiagnostics(item: Item) {
         val page = item.page ?: return
         val lines = JSONArray()
-        page.lines.forEach { l ->
-            lines.put(JSONObject().put("t", l.text).put("b", JSONArray(listOf(l.left, l.top, l.right, l.bottom))))
+        page.lines.forEachIndexed { i, l ->
+            val o = JSONObject().put("t", l.text).put("b", JSONArray(listOf(l.left, l.top, l.right, l.bottom)))
+            l.alt?.let { o.put("alt", it) }
+            // 两个引擎各自的原始结果，方便判断是哪一个认错了
+            page.readings?.getOrNull(i)?.let { r ->
+                o.put("ml", r.ml)
+                r.pp?.let { o.put("pp", it).put("c", Math.round(r.ppConf * 100) / 100.0) }
+            }
+            lines.put(o)
         }
         val json = JSONObject()
             .put("now", TimeFmt.format(System.currentTimeMillis()))

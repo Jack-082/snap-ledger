@@ -43,6 +43,7 @@ internal object BillListParser {
             }
             val time = (listOf(texts[i]) + detailRows).firstNotNullOfOrNull { TimeParser.find(it, now, year) }
             val extra = detailRows.joinToString(" ")
+            val alt = rows[i].lineAt(m.range.first).alt
             out += ParsedReceipt(
                 amountCents = cents,
                 direction = direction,
@@ -50,7 +51,8 @@ internal object BillListParser {
                 time = time,
                 category = Categorizer.fromAppCategory(extra, direction) ?: Categorizer.categorize(direction, merchant, extra),
                 channel = app.label,
-                confident = true,
+                confident = alt == null,
+                amountAlt = alt,
                 warning = Lexicon.statusWarning(texts[i] + " " + extra, direction),
             )
         }

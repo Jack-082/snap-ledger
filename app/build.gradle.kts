@@ -29,6 +29,10 @@ android {
         targetSdk = 35
         versionCode = gitCommitCount
         versionName = gitVersionName
+        // 只打包 ARM 架构的原生库（手机都是 ARM；x86 只有模拟器用），安装包能小十几 MB
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
     }
 
     // 可选的固定签名：在 CI 里通过环境变量提供，保证每次构建的 APK 能覆盖安装。
@@ -81,6 +85,11 @@ android {
     }
 }
 
+// 单元测试的标准输出显示在构建日志里（识别样本测试会打印每一行的识别结果）
+tasks.withType<Test>().configureEach {
+    testLogging { showStandardStreams = true }
+}
+
 dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.activity:activity-compose:1.9.3")
@@ -93,8 +102,12 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     // 端侧 OCR（中文 + 拉丁字符），模型打包进 APK，不依赖 Google Play 服务和网络
     implementation("com.google.mlkit:text-recognition-chinese:16.0.1")
+    // 第二个识别引擎：PP-OCRv5 mobile（模型在 assets/ppocr），用 ONNX Runtime 运行
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.32.0")
 
     testImplementation("junit:junit:4.13.2")
     // 单元测试里 android.jar 的 org.json 是空实现，换成真实实现来读取识别数据样本
     testImplementation("org.json:json:20240303")
+    // 桌面版 ONNX Runtime（同一套 Java API），让单元测试在 CI 上用真实模型识别样本图片
+    testImplementation("com.microsoft.onnxruntime:onnxruntime:1.32.0")
 }

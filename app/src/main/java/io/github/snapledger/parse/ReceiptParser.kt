@@ -27,6 +27,8 @@ data class ParsedReceipt(
     val account: String = "",
     /** 交易关闭、已全额退款等提示。 */
     val warning: String? = null,
+    /** 两个识别引擎读出的金额不一致时，另一个引擎读到的那一行文字，界面提示用户核对。 */
+    val amountAlt: String? = null,
 )
 
 data class ParseResult(val kind: PageKind, val app: PayApp, val items: List<ParsedReceipt>)
@@ -77,13 +79,16 @@ object ReceiptParser {
             time = time(texts, now),
             category = appCategory ?: Categorizer.categorize(direction, merchant, all),
             channel = detectApp(all).label,
-            confident = best != null && best.score >= 5,
+            confident = best != null && best.score >= 5 && best.alt == null,
+            amountAlt = best?.alt,
             account = Lexicon.valueAfter(texts, Lexicon.ACCOUNT_LABELS)?.let { Lexicon.clean(it).take(30) } ?: "",
             warning = Lexicon.statusWarning(all, direction),
         )
     }
 
-    private data class Candidate(val cents: Long, val sign: Char?, val row: Int, val score: Int, val before: String)
+    private data class Candidate(
+        val cents: Long, val sign: Char?, val row: Int, val score: Int, val before: String, val alt: String?,
+    )
 
     private fun amountCandidates(rows: List<TextRow>): List<Candidate> {
         val median = Layout.medianHeight(rows)
@@ -126,9 +131,10 @@ object ReceiptParser {
                 if (labeled) score += 4
                 if (negative) score -= 6
                 // 版面：账单页的金额是全页最大号的数字
-                val ratio = r.lineAt(m.groups[3]!!.range.first).height / median
+                val line = r.lineAt(m.groups[3]!!.range.first)
+                val ratio = line.height / median
                 if (ratio >= 1.6f) score += 6 else if (ratio >= 1.25f) score += 3
-                out += Candidate(cents, sign, i, score, before)
+                out += Candidate(cents, sign, i, score, before, line.alt)
             }
         }
         return out

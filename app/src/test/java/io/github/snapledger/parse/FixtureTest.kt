@@ -35,7 +35,7 @@ class FixtureTest {
             (0 until lines.length()).map { i ->
                 val l = lines.getJSONObject(i)
                 val b = l.getJSONArray("b")
-                OcrLine(l.getString("t"), b.getInt(0), b.getInt(1), b.getInt(2), b.getInt(3))
+                OcrLine(l.getString("t"), b.getInt(0), b.getInt(1), b.getInt(2), b.getInt(3), l.optString("alt").ifEmpty { null })
             },
             o.optInt("width"), o.optInt("height"),
         )

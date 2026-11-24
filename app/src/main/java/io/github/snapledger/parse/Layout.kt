@@ -1,13 +1,28 @@
 package io.github.snapledger.parse
 
-/** OCR 识别出的一行文字及其在图片中的位置（像素）。 */
-data class OcrLine(val text: String, val left: Int, val top: Int, val right: Int, val bottom: Int) {
+/**
+ * OCR 识别出的一行文字及其在图片中的位置（像素）。
+ * [alt]：两个识别引擎对这一行的数字读得不一样时，另一个引擎的结果（见 [Fusion]）。
+ */
+data class OcrLine(
+    val text: String, val left: Int, val top: Int, val right: Int, val bottom: Int,
+    val alt: String? = null,
+) {
     val height: Int get() = (bottom - top).coerceAtLeast(1)
     val centerY: Int get() = (top + bottom) / 2
 }
 
-/** 一张截图的识别结果。width / height 为 0 表示未知（例如只有文字的短信）。 */
-data class OcrPage(val lines: List<OcrLine>, val width: Int = 0, val height: Int = 0) {
+/** 两个引擎各自对一行的原始结果，只用于导出识别数据排查问题。 */
+data class EngineReading(val ml: String, val pp: String?, val ppConf: Float)
+
+/**
+ * 一张截图的识别结果。width / height 为 0 表示未知（例如只有文字的短信）。
+ * [readings] 与 [lines] 一一对应，没有用到第二个引擎时为 null。
+ */
+data class OcrPage(
+    val lines: List<OcrLine>, val width: Int = 0, val height: Int = 0,
+    val readings: List<EngineReading>? = null,
+) {
     companion object {
         /** 只有文字、没有位置信息时：每行等高、上下排开，版面特征（字号）不起作用。 */
         fun fromRows(rows: List<String>) = OcrPage(rows.mapIndexed { i, t -> OcrLine(t, 0, i * 60, 1000, i * 60 + 40) })
