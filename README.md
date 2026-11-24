@@ -80,7 +80,10 @@
 
 ### 下载 APK
 
+- **国内用户**：打开 [蒲公英下载页](https://www.pgyer.com/shizhang-android-p)，手机浏览器直接下载安装，始终是最新版本。
 - **GitHub**：到 [Releases](https://github.com/Jack-082/snap-ledger/releases/latest) 下载 `SnapLedger-<版本>-release.apk`。
+
+两处的安装包相同。
 
 需要 Android 9 及以上、64 位 ARM 手机。签名证书 SHA-256 为 `9db169c6ec9517af004d9cb1967b2d6359a6558b673dc738fa1c21f38f85e14a`，以后的版本使用同一签名，可以**直接覆盖安装**，账本数据保留。
 
