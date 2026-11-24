@@ -29,6 +29,8 @@ data class Txn(
     val merchant: String = "",
     val note: String = "",
     val timeMillis: Long,
+    /** 支付方式 / 账户，例如“零钱”“花呗”“招商银行储蓄卡(4132)”。 */
+    val account: String = "",
     val source: Source = Source.MANUAL,
     val dedupKey: String? = null,
 )

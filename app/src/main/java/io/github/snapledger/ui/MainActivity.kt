@@ -214,13 +214,16 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            PrimaryButton("导入截图", Modifier.weight(1f)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            PrimaryButton("最新截图", Modifier.weight(1f)) {
+                startActivity(ImportActivity.latestIntent(this@MainActivity))
+            }
+            SecondaryButton("相册多选", Modifier.weight(1f)) {
                 pickImages.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
             }
             SecondaryButton("记一笔", Modifier.weight(1f)) { editingTxn = null to TxnDraft() }
         }
-        Caption("付款或收款后截图，在相册里点“分享 → 截图记账”即可直接导入，支持一次分享多张。")
+        Caption("付款或收款后截图，然后任选一种：在通知栏快捷开关里点“记最新截图”（需先在快捷开关编辑页添加）；在相册里“分享 → 截图记账”；或回到这里点“最新截图”。微信 / 支付宝的账单列表截图可以一次导入多笔。")
 
         Section("明细 · ${txns.size} 笔") {
             if (txns.isEmpty()) {
@@ -310,7 +313,7 @@ class MainActivity : ComponentActivity() {
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    listOf(t.category, TimeFmt.clock(t.timeMillis), t.source.label, t.note).filter { it.isNotEmpty() }.joinToString(" · "),
+                    listOf(t.category, TimeFmt.clock(t.timeMillis), t.account, t.source.label, t.note).filter { it.isNotEmpty() }.joinToString(" · "),
                     fontSize = 11.sp, color = Palette.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
             }

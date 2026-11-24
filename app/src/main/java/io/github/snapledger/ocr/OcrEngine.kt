@@ -7,7 +7,7 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
 import io.github.snapledger.parse.OcrLine
-import io.github.snapledger.parse.OcrRows
+import io.github.snapledger.parse.OcrPage
 import java.security.MessageDigest
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -18,17 +18,19 @@ class OcrEngine(private val context: Context) : AutoCloseable {
 
     private val recognizer = TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build())
 
-    /** 识别图片，返回按视觉行合并后的文字。 */
-    suspend fun recognize(uri: Uri): List<String> {
+    /** 识别图片，返回每个文字块及其位置（版面分析在 [io.github.snapledger.parse.Layout] 里做）。 */
+    suspend fun recognize(uri: Uri): OcrPage {
         val image = InputImage.fromFilePath(context, uri)
         val text = recognizer.process(image).await()
         val lines = text.textBlocks.flatMap { it.lines }
-        if (lines.any { it.boundingBox == null }) return text.text.lines()
-        return OcrRows.group(
+        if (lines.any { it.boundingBox == null }) return OcrPage.fromRows(text.text.lines())
+        return OcrPage(
             lines.map { l ->
                 val b = l.boundingBox!!
                 OcrLine(l.text, b.left, b.top, b.right, b.bottom)
-            }
+            },
+            image.width,
+            image.height,
         )
     }
 

@@ -1,5 +1,6 @@
 package io.github.snapledger.parse
 
+import io.github.snapledger.model.Categories
 import io.github.snapledger.model.Direction
 
 /** 按关键词给账单归类；匹配不到时归入“其他”。规则按顺序匹配，靠前的优先。 */
@@ -30,4 +31,21 @@ object Categorizer {
         val rules = if (direction == Direction.INCOME) INCOME_RULES else EXPENSE_RULES
         return rules.firstOrNull { (_, words) -> words.any { haystack.contains(it) } }?.first ?: "其他"
     }
+
+    /** 支付宝“账单分类”等 App 自带分类 → 本应用分类。 */
+    private val APP_CATEGORY: List<Pair<String, String>> = listOf(
+        "餐饮" to "餐饮", "美食" to "餐饮", "交通" to "交通", "出行" to "交通", "爱车" to "交通",
+        "日用" to "购物", "百货" to "购物", "服饰" to "购物", "数码" to "购物", "家居" to "购物", "美容" to "购物", "母婴" to "购物", "购物" to "购物",
+        "充值" to "生活缴费", "缴费" to "生活缴费", "生活服务" to "生活缴费", "住房" to "住房", "物业" to "住房",
+        "医疗" to "医疗", "健康" to "医疗", "休闲" to "娱乐", "娱乐" to "娱乐", "运动" to "娱乐", "文化" to "娱乐",
+        "转账" to "转账", "红包" to "转账", "投资" to "理财", "理财" to "理财", "退款" to "退款", "工资" to "工资",
+    )
+
+    /** App 自带的分类名能对应上本应用分类时返回，否则 null。 */
+    fun fromAppCategory(text: String, direction: Direction): String? =
+        APP_CATEGORY.firstOrNull { text.contains(it.first) }?.second?.takeIf { it in Categories.of(direction) }
+
+    /** 用于“记住商户分类”的商户键：去掉门店括号、空白，忽略大小写。“星巴克(人民广场店)” → “星巴克”。 */
+    fun merchantKey(merchant: String): String =
+        merchant.replace(Regex("""[(（][^)）]*[)）]"""), "").replace(Regex("\\s+"), "").lowercase()
 }

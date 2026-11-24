@@ -63,6 +63,7 @@ class TxnDraft(
     merchant: String = "",
     note: String = "",
     time: String = TimeFmt.format(System.currentTimeMillis()),
+    account: String = "",
 ) {
     var amount by mutableStateOf(amount)
     var direction by mutableStateOf(direction)
@@ -70,6 +71,7 @@ class TxnDraft(
     var merchant by mutableStateOf(merchant)
     var note by mutableStateOf(note)
     var time by mutableStateOf(time)
+    var account by mutableStateOf(account)
 
     val amountCents: Long? get() = Money.parseCents(amount)?.takeIf { it > 0 }
     val timeMillis: Long? get() = TimeFmt.parse(time)
@@ -92,6 +94,7 @@ class TxnDraft(
             merchant = merchant.trim(),
             note = note.trim(),
             timeMillis = millis,
+            account = account.trim(),
             source = base?.source ?: source,
             dedupKey = base?.dedupKey ?: dedupKey,
         )
@@ -105,6 +108,7 @@ class TxnDraft(
             merchant = t.merchant,
             note = t.note,
             time = TimeFmt.format(t.timeMillis),
+            account = t.account,
         )
     }
 }
@@ -175,6 +179,7 @@ fun TxnEditor(d: TxnDraft) {
         Chips(options, d.category) { d.category = it }
         LedgerField("商户 / 对方", d.merchant) { d.merchant = it }
         LedgerField("时间", d.time, placeholder = "2026-11-20 12:30") { d.time = it }
+        LedgerField("支付方式 / 账户", d.account, placeholder = "零钱 / 花呗 / 招商银行(4132)") { d.account = it }
         LedgerField("备注", d.note) { d.note = it }
         d.error?.let { Caption(it, Palette.Red) }
     }

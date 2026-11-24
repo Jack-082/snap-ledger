@@ -9,7 +9,7 @@ import java.time.format.DateTimeFormatter
 /** 导出 CSV（带 UTF-8 BOM，Excel 打开中文不乱码）。 */
 object Csv {
     private val TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-    val HEADER = listOf("时间", "收支", "金额", "分类", "商户/对方", "备注", "来源")
+    val HEADER = listOf("时间", "收支", "金额", "分类", "商户/对方", "支付方式", "备注", "来源")
 
     fun export(txns: List<Txn>, zone: ZoneId = ZoneId.systemDefault()): String {
         val sb = StringBuilder("﻿")
@@ -21,6 +21,7 @@ object Csv {
                 Money.format(t.amountCents).replace(",", ""),
                 t.category,
                 t.merchant,
+                t.account,
                 t.note,
                 t.source.label,
             )

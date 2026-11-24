@@ -8,12 +8,13 @@ import android.database.sqlite.SQLiteOpenHelper
 import io.github.snapledger.model.Direction
 import io.github.snapledger.model.Source
 import io.github.snapledger.model.Txn
+import io.github.snapledger.parse.Categorizer
 import io.github.snapledger.recurring.RecurringRule
 import java.time.YearMonth
 
 /** 本地账本（SQLite）。数据只保存在本机，不联网。 */
 class LedgerDb private constructor(context: Context) :
-    SQLiteOpenHelper(context.applicationContext, "ledger.db", null, 1) {
+    SQLiteOpenHelper(context.applicationContext, "ledger.db", null, 2) {
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
@@ -28,7 +29,8 @@ class LedgerDb private constructor(context: Context) :
                 time INTEGER NOT NULL,
                 source TEXT NOT NULL,
                 dedup TEXT UNIQUE,
-                created INTEGER NOT NULL
+                created INTEGER NOT NULL,
+                account TEXT NOT NULL DEFAULT ''
             )
             """.trimIndent()
         )
@@ -54,7 +56,10 @@ class LedgerDb private constructor(context: Context) :
         )
     }
 
-    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        // v2：新增支付方式 / 账户
+        if (oldVersion < 2) db.execSQL("ALTER TABLE txn ADD COLUMN account TEXT NOT NULL DEFAULT ''")
+    }
 
     // ---------------- 账单 ----------------
 
@@ -67,6 +72,7 @@ class LedgerDb private constructor(context: Context) :
         put("time", timeMillis)
         put("source", source.name)
         put("dedup", dedupKey)
+        put("account", account)
     }
 
     /** 插入一笔账；dedupKey 已存在时不插入，返回 -1。 */
@@ -111,7 +117,26 @@ class LedgerDb private constructor(context: Context) :
         timeMillis = getLong(getColumnIndexOrThrow("time")),
         source = Source.of(getString(getColumnIndexOrThrow("source"))),
         dedupKey = getColumnIndexOrThrow("dedup").let { if (isNull(it)) null else getString(it) },
+        account = getString(getColumnIndexOrThrow("account")),
     )
+
+    /**
+     * 记住商户分类：每个（收支方向，商户）最近一次用过的分类。
+     * 截图识别出同一商户时优先用它，用户改过一次分类，下次就会沿用。
+     */
+    fun categoryHistory(limit: Int = 2000): Map<Pair<Direction, String>, String> {
+        val out = HashMap<Pair<Direction, String>, String>()
+        readableDatabase.rawQuery(
+            "SELECT direction, merchant, category FROM txn WHERE merchant != '' AND source != ? ORDER BY time DESC LIMIT ?",
+            arrayOf(Source.RECURRING.name, limit.toString()),
+        ).use { c ->
+            while (c.moveToNext()) {
+                val key = Direction.of(c.getString(0)) to Categorizer.merchantKey(c.getString(1))
+                if (key.second.isNotEmpty()) out.putIfAbsent(key, c.getString(2))
+            }
+        }
+        return out
+    }
 
     // ---------------- 固定收支 ----------------
 

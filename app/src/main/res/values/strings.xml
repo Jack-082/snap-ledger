@@ -2,4 +2,5 @@
 <resources>
     <string name="app_name">截图记账</string>
     <string name="share_label">截图记账</string>
+    <string name="tile_label">记最新截图</string>
 </resources>
