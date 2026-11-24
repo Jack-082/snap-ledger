@@ -68,6 +68,7 @@ import io.github.snapledger.model.Money
 import io.github.snapledger.model.Source
 import io.github.snapledger.ocr.OcrEngine
 import io.github.snapledger.parse.Categorizer
+import io.github.snapledger.parse.Fusion
 import io.github.snapledger.parse.Layout
 import io.github.snapledger.parse.OcrPage
 import io.github.snapledger.parse.PageKind
@@ -344,6 +345,17 @@ class ImportActivity : ComponentActivity() {
         lifecycleScope.launch { delay(400); finish() }
     }
 
+    /** 第二个识别引擎是否生效、改动了几行，让用户能看出它在不在工作。 */
+    private fun engineSummary(item: Item): String {
+        val page = item.page ?: return ""
+        val readings = page.readings ?: return "仅 ML Kit"
+        val changed = page.lines.indices.count { i ->
+            val r = readings.getOrNull(i) ?: return@count false
+            r.pp != null && Fusion.fuse(r.ml, r.ml, FloatArray(r.ml.length) { 1f }).text != page.lines[i].text
+        }
+        return if (changed > 0) "双引擎，修正 $changed 行" else "双引擎，结果一致"
+    }
+
     /** 识别数据（文字 + 位置）导出为 JSON，反馈识别问题时附上，可直接做成测试用例。 */
     private fun copyDiagnostics(item: Item) {
         val page = item.page ?: return
@@ -436,7 +448,7 @@ class ImportActivity : ComponentActivity() {
                 Phase.Done -> Unit
             }
             if (item.rows.isNotEmpty() && item.phase != Phase.Done) {
-                ExpandableHeader("识别文字", "${item.rows.size} 行", item.showRaw) { item.showRaw = !item.showRaw }
+                ExpandableHeader("识别文字", "${item.rows.size} 行 · ${engineSummary(item)}", item.showRaw) { item.showRaw = !item.showRaw }
                 if (item.showRaw) {
                     Box(Modifier.fillMaxWidth().background(Palette.Tint, RoundedCornerShape(8.dp)).padding(12.dp)) {
                         Text(item.rows.joinToString("\n"), fontFamily = FontFamily.Monospace, fontSize = 11.sp, lineHeight = 16.sp, color = Palette.Ink)
